@@ -252,4 +252,77 @@ footer {
 
 .like-button:hover {
     color: #ff4d4d;
+}
+
+/* Full Post View */
+.full-post {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: white;
+}
+
+.full-post .post-header {
+    margin-bottom: 2rem;
+}
+
+.full-post h1 {
+    font-family: 'Lora', serif;
+    color: rgb(25, 55, 109);
+    font-size: 2.5rem;
+    line-height: 1.3;
+    margin-bottom: 1rem;
+}
+
+.full-post .post-content {
+    font-size: 1.2rem;
+    line-height: 1.8;
+    color: #333;
+}
+
+.full-post .post-content p {
+    margin-bottom: 1.5rem;
+}
+
+.full-post .post-content a {
+    color: rgb(25, 55, 109);
+    text-decoration: none;
+}
+
+.full-post .post-content a:hover {
+    text-decoration: underline;
+}
+
+.full-post .post-footer {
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #eee;
+}
+
+.close-button {
+    display: inline-block;
+    margin-top: 2rem;
+    padding: 0.8rem 1.5rem;
+    background: none;
+    border: 1px solid rgb(25, 55, 109);
+    color: rgb(25, 55, 109);
+    font-family: 'Lora', serif;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.close-button:hover {
+    background: rgb(25, 55, 109);
+    color: white;
+}
+
+/* Make blog posts clickable */
+.blog-post {
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.blog-post:hover {
+    transform: translateY(-2px);
 } 
