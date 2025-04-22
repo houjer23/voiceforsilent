@@ -1,69 +1,157 @@
-/* --- tiny helper --------------------------------------------------- */
-function getQueryParam(name) {
-    return new URLSearchParams(window.location.search).get(name);
-  }
-  
-  /* --- convert your simple Rich‑Text JSON to HTML -------------------- */
-  function richToHTML(node) {
-    if (node.type === 'PARAGRAPH') {
-      const inner = node.nodes.map(richToHTML).join('');
-      return `<p>${inner}</p>`;
+/* post.js – render a single article picked via ?slug=…              */
+
+document.addEventListener('DOMContentLoaded', async () => {
+    const params = new URLSearchParams(location.search);
+    const slug   = params.get('slug');
+    const target = document.getElementById('post');
+    
+    console.log('Loading post with slug:', slug);
+
+    if (!slug) {
+        console.log('No slug provided');
+        target.innerHTML = '<p>Post not found.</p>';
+        return;
     }
-    if (node.type === 'TEXT') {
-      let txt = node.textData.text
-        .replace(/&/g,'&amp;')
-        .replace(/</g,'&lt;')
-        .replace(/>/g,'&gt;');
-      const hasBold = node.decorations?.some(d => d.type === 'BOLD');
-      if (hasBold) txt = `<strong>${txt}</strong>`;
-      return txt;
+
+    try {
+        console.log('Fetching Posts.csv...');
+        const csv   = await (await fetch('Posts.csv')).text();
+        const posts = parseCSV(csv);
+        console.log('Found', posts.length, 'posts');
+        
+        const post  = posts.find(p => p.Slug === slug);
+        console.log('Found post:', post ? 'yes' : 'no');
+
+        if (!post) {
+            target.innerHTML = '<p>Post not found.</p>';
+            return;
+        }
+
+        target.innerHTML = renderPost(post);
+        console.log('Post rendered successfully');
+    } catch (err) {
+        console.error('Error loading post:', err);
+        target.innerHTML = '<p>Error loading post.</p>';
     }
-    /* fallback – ignore unhandled types */
-    return '';
-  }
-  
-  /* --- main ---------------------------------------------------------- */
-  async function loadPost() {
-    const slug = getQueryParam('slug');
-    if (!slug) return (document.body.textContent = 'Missing slug.');
-  
-    const csv   = await fetch('Posts.csv').then(r => r.text());
-    const rows  = csv.trim().split(/\r?\n/);
-    const heads = rows.shift().split(',');
-    const idxSlug = heads.findIndex(h => h.replace(/"/g,'').trim() === 'Slug');
-  
-    const row = rows
-      .map(line => line.match(/("([^"]|"")*"|[^,]*)/g))
-      .find(vals => vals[idxSlug].replace(/^"|"$/g,'') === slug);
-  
-    if (!row) return (document.body.textContent = 'Post not found.');
-  
-    const post = Object.fromEntries(
-      row.map((v,i)=>[heads[i].replace(/"/g,'').trim(),
-                      v.replace(/^"|"$/g,'').replace(/""/g,'"')])
-    );
-  
-    /* build HTML ------------------------------------------------------ */
-    const art = document.getElementById('post');
-    art.innerHTML = `
-      <h1>${post.Title}</h1>
-      <p class="meta">
-         ${new Date(post['Published Date'])
-            .toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'})}
-         · ${post['Time To Read']} min read
-      </p>`;
-  
-    /* render rich content (fallback to Plain Content if empty) */
-    let rich = post['Rich Content'];
-    try   { rich = JSON.parse(rich || '{}'); }
-    catch { rich = {}; }
-  
-    if (rich.nodes) {
-      art.innerHTML += rich.nodes.map(richToHTML).join('');
-    } else {
-      art.innerHTML += `<p>${post['Plain Content']}</p>`;
+});
+
+/* ---- very small renderer for the Rich Content format ---- */
+function renderPost(post) {
+    const html = [];
+    html.push(`<h1 class="post-title">${post.Title || 'Untitled'}</h1>`);
+
+    if (post['Published Date']) {
+        const date = new Date(post['Published Date'])
+            .toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+        html.push(`<p class="post-date">${date}</p>`);
     }
-  }
-  
-  document.addEventListener('DOMContentLoaded', loadPost);
-  
+
+    /*  ↓―― basic walk of the tiptap‑style JSON (paragraph + bold only). 
+          Expand as you meet new node types.                           */
+    (post['Rich Content']?.nodes || []).forEach(node => {
+        if (node.type === 'PARAGRAPH') {
+            const inner = node.nodes?.map(n => n.textData
+                ? decorateText(n.textData) : '').join('') || '';
+            html.push(`<p>${inner}</p>`);
+        }
+    });
+
+    return html.join('\n');
+}
+
+function decorateText(t) {
+    /* look for "BOLD" decoration only; extend for italic, links, etc. */
+    if (!t.decorations?.some(d => d.type === 'BOLD')) return t.text;
+    return `<strong>${t.text}</strong>`;
+}
+
+/* ----------------------------------------------------------- */
+/*  mini CSV helper – identical to the one already in blog.js  */
+/*  (copy‑paste or move into a shared module in real projects)  */
+/* ----------------------------------------------------------- */
+
+function csvToRows(text) {
+    const rows = [];
+    let field  = '';
+    let row    = [];
+    let inQuotes = false;
+
+    for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+        const next = text[i + 1];
+
+        if (char === '"') {
+            // doubled quote inside a quoted field -> literal "
+            if (inQuotes && next === '"') { field += '"'; i++; continue; }
+            inQuotes = !inQuotes;
+            continue;
+        }
+
+        if (char === ',' && !inQuotes) {
+            row.push(field);
+            field = '';
+            continue;
+        }
+
+        if ((char === '\n' || char === '\r') && !inQuotes) {
+            // Windows line‑ends: swallow the \n after \r
+            if (char === '\r' && next === '\n') i++;
+            row.push(field);
+            rows.push(row);
+            row   = [];
+            field = '';
+            continue;
+        }
+
+        field += char;
+    }
+
+    /* push last field / row (file may not end with NL) */
+    if (field.length || inQuotes) row.push(field);
+    if (row.length) rows.push(row);
+    return rows;
+}
+
+/* ------------------------------------------------------------------ */
+/* 2.  Parse rows into post objects                                    */
+/* ------------------------------------------------------------------ */
+function parseCSV(csvText) {
+    const rows = csvToRows(csvText);
+    if (!rows.length) return [];
+
+    const headers = rows.shift().map(h => h.replace(/^"|"$/g, '').trim());
+    const posts   = [];
+
+    for (const valuesRaw of rows) {
+        // skip blank CSV rows
+        if (!valuesRaw.some(v => v.trim())) continue;
+
+        const post = {};
+
+        headers.forEach((header, idx) => {
+            let value = valuesRaw[idx] || '';
+
+            // strip surrounding quotes (not the ones we've un‑escaped)
+            value = value.replace(/^"|"$/g, '').trim();
+
+            /* ---- field‑specific coercions ---- */
+            if (['Tags', 'Categories', 'Related Posts', 'Hashtags'].includes(header)) {
+                try { value = JSON.parse(value || '[]'); } catch { value = []; }
+            } else if (header === 'Rich Content') {
+                try { value = JSON.parse(value || '{}'); } catch { value = {}; }
+            } else if (['View Count', 'Comment Count', 'Like Count'].includes(header)) {
+                value = parseInt(value, 10) || 0;
+            } else if (['Featured', 'Pinned', 'Cover Image Displayed'].includes(header)) {
+                value = value.toLowerCase() === 'true';
+            }
+            post[header] = value;
+        });
+
+        /* fallback title if the column is empty */
+        if (!post.Title && post['Plain Content'])
+            post.Title = post['Plain Content'].slice(0, 60) + '…';
+
+        posts.push(post);
+    }
+    return posts;
+}

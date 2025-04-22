@@ -109,12 +109,13 @@ function displayPosts(posts) {
     const container = document.getElementById('posts-container');
 
     posts.forEach(post => {
-        const article = document.createElement('article');
+        const article = document.createElement('a');   // <── anchor instead of <article>
+        article.href      = `post.html?slug=${encodeURIComponent(post.Slug)}`;
         article.className = 'blog-post';
 
         const publishedDate = post['Published Date']
             ? new Date(post['Published Date']).toLocaleDateString('en-US',
-                { year: 'numeric', month: 'short', day: 'numeric' })
+              { year: 'numeric', month: 'short', day: 'numeric' })
             : '';
 
         const tags = post.Tags.length
@@ -126,14 +127,14 @@ function displayPosts(posts) {
             <div class="post-meta">
                 <span class="date">${publishedDate}</span>
                 <span class="bullet">&nbsp;·&nbsp;</span>
-                <span class="read-time">${post['Time To Read']} min read</span>
+                <span class="read-time">${post['Time To Read']} min read</span>
             </div>
             ${tags}
             <p class="post-excerpt">${post.Excerpt}</p>
             <div class="post-stats">
-                <span class="view-count">${post['View Count']} views</span>
-                <span class="comment-count">${post['Comment Count']} comments</span>
-                <span class="like-count">${post['Like Count']} likes</span>
+                <span class="view-count">${post['View Count']} views</span>
+                <span class="comment-count">${post['Comment Count']} comments</span>
+                <span class="like-count">${post['Like Count']} likes</span>
             </div>`;
         container.appendChild(article);
     });
