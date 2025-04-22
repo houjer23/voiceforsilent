@@ -52,7 +52,7 @@ nav {
 /* Hero Section */
 .hero {
     height: 70vh;
-    background-image: url('hero-bg.jpg');
+    background-color: #f5f5f5;
     background-size: cover;
     background-position: center;
     display: flex;
