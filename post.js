@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (!slug) {
         console.log('No slug provided');
-        target.innerHTML = '<p>Post not found.</p>';
+        target.innerHTML = '<div class="error-message">Post not found.</div>';
         return;
     }
 
@@ -23,46 +23,137 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log('Found post:', post ? 'yes' : 'no');
 
         if (!post) {
-            target.innerHTML = '<p>Post not found.</p>';
+            target.innerHTML = '<div class="error-message">Post not found.</div>';
             return;
         }
 
         target.innerHTML = renderPost(post);
         console.log('Post rendered successfully');
+
+        // Add smooth scroll behavior for headings
+        document.querySelectorAll('.post-content a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
     } catch (err) {
         console.error('Error loading post:', err);
-        target.innerHTML = '<p>Error loading post.</p>';
+        target.innerHTML = '<div class="error-message">Error loading post.</div>';
     }
 });
 
 /* ---- very small renderer for the Rich Content format ---- */
 function renderPost(post) {
     const html = [];
+    
+    // Post header section
+    html.push('<article class="post-content">');
+    html.push('<header class="post-header">');
+    
+    // Title
     html.push(`<h1 class="post-title">${post.Title || 'Untitled'}</h1>`);
-
+    
+    // Post metadata
+    html.push('<div class="post-meta">');
     if (post['Published Date']) {
         const date = new Date(post['Published Date'])
-            .toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
-        html.push(`<p class="post-date">${date}</p>`);
+            .toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        html.push(`<span class="post-date"><i class="far fa-calendar"></i> ${date}</span>`);
     }
+    if (post['Time To Read']) {
+        html.push(`<span class="read-time"><i class="far fa-clock"></i> ${post['Time To Read']} min read</span>`);
+    }
+    html.push('</div>');
 
-    /*  ↓―― basic walk of the tiptap‑style JSON (paragraph + bold only). 
-          Expand as you meet new node types.                           */
-    (post['Rich Content']?.nodes || []).forEach(node => {
-        if (node.type === 'PARAGRAPH') {
-            const inner = node.nodes?.map(n => n.textData
-                ? decorateText(n.textData) : '').join('') || '';
-            html.push(`<p>${inner}</p>`);
-        }
-    });
+    // Tags
+    if (post.Tags && post.Tags.length > 0) {
+        html.push('<div class="post-tags">');
+        post.Tags.forEach(tag => {
+            html.push(`<span class="tag">${tag}</span>`);
+        });
+        html.push('</div>');
+    }
+    html.push('</header>');
 
+    // Post body
+    html.push('<div class="post-body">');
+    if (post['Rich Content']?.nodes) {
+        post['Rich Content'].nodes.forEach(node => {
+            if (node.type === 'PARAGRAPH') {
+                const inner = node.nodes?.map(n => {
+                    if (!n.textData) return '';
+                    return decorateText(n.textData);
+                }).join('') || '';
+                
+                if (inner.trim()) {
+                    html.push(`<p>${inner}</p>`);
+                } else {
+                    html.push('<br>'); // Empty paragraphs become line breaks
+                }
+            }
+        });
+    }
+    html.push('</div>');
+
+    // Post footer with stats
+    html.push('<footer class="post-footer">');
+    html.push('<div class="post-stats">');
+    html.push(`<span class="views"><i class="far fa-eye"></i> ${post['View Count'] || 0} views</span>`);
+    html.push(`<span class="comments"><i class="far fa-comment"></i> ${post['Comment Count'] || 0} comments</span>`);
+    html.push(`<span class="likes"><i class="far fa-heart"></i> ${post['Like Count'] || 0} likes</span>`);
+    html.push('</div>');
+    
+    // Navigation
+    html.push('<div class="post-navigation">');
+    html.push('<a href="blog.html" class="back-link"><i class="fas fa-arrow-left"></i> Back to Blog</a>');
+    html.push('</div>');
+    html.push('</footer>');
+    
+    html.push('</article>');
     return html.join('\n');
 }
 
 function decorateText(t) {
-    /* look for "BOLD" decoration only; extend for italic, links, etc. */
-    if (!t.decorations?.some(d => d.type === 'BOLD')) return t.text;
-    return `<strong>${t.text}</strong>`;
+    let text = t.text;
+    if (!t.decorations) return text;
+    
+    t.decorations.forEach(decoration => {
+        switch (decoration.type) {
+            case 'BOLD':
+                text = `<strong>${text}</strong>`;
+                break;
+            case 'ITALIC':
+                text = `<em>${text}</em>`;
+                break;
+            case 'UNDERLINE':
+                text = `<u>${text}</u>`;
+                break;
+            case 'COLOR':
+                if (decoration.colorData) {
+                    const { foreground, background } = decoration.colorData;
+                    let style = '';
+                    if (foreground && foreground !== 'rgb(0, 0, 0)') {
+                        style += `color: ${foreground};`;
+                    }
+                    if (background && background !== 'transparent') {
+                        style += `background-color: ${background};`;
+                    }
+                    if (style) {
+                        text = `<span style="${style}">${text}</span>`;
+                    }
+                }
+                break;
+        }
+    });
+    
+    return text;
 }
 
 /* ----------------------------------------------------------- */

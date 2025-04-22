@@ -5,11 +5,15 @@ async function loadPosts() {
         const response = await fetch('Posts.csv');
         const csvText = await response.text();
         const posts   = parseCSV(csvText);
+        
+        // Sort posts by date, most recent first
+        posts.sort((a, b) => new Date(b['Published Date']) - new Date(a['Published Date']));
+        
         displayPosts(posts);
     } catch (error) {
         console.error('Error loading posts:', error);
         document.getElementById('posts-container').innerHTML =
-            '<p>Error loading posts. Please try again later.</p>';
+            '<div class="error-message">Error loading posts. Please try again later.</div>';
     }
 }
 
@@ -107,38 +111,68 @@ function parseCSV(csvText) {
 /* ------------------------------------------------------------------ */
 function displayPosts(posts) {
     const container = document.getElementById('posts-container');
+    container.innerHTML = ''; // Clear existing content
 
+    // Create grid for all posts
+    const postsGrid = document.createElement('div');
+    postsGrid.className = 'posts-grid';
+
+    // Display all posts
     posts.forEach(post => {
-        const article = document.createElement('a');   // <── anchor instead of <article>
-        article.href      = `post.html?slug=${encodeURIComponent(post.Slug)}`;
+        const article = document.createElement('article');
         article.className = 'blog-post';
+        article.innerHTML = createPostCardHTML(post);
+        article.addEventListener('click', () => {
+            window.location.href = `post.html?slug=${encodeURIComponent(post.Slug)}`;
+        });
+        postsGrid.appendChild(article);
+    });
 
-        const publishedDate = post['Published Date']
-            ? new Date(post['Published Date']).toLocaleDateString('en-US',
-              { year: 'numeric', month: 'short', day: 'numeric' })
-            : '';
+    container.appendChild(postsGrid);
+}
 
-        const tags = post.Tags.length
-            ? `<div class="post-tags">${post.Tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>`
-            : '';
+function createPostCardHTML(post) {
+    const publishedDate = formatDate(post['Published Date']);
+    const tags = createTagsHTML(post.Tags);
 
-        article.innerHTML = `
-            <h2 class="blog-title">${post.Title || 'Untitled'}</h2>
+    return `
+        <div class="post-card-content">
             <div class="post-meta">
                 <span class="date">${publishedDate}</span>
-                <span class="bullet">&nbsp;·&nbsp;</span>
-                <span class="read-time">${post['Time To Read']} min read</span>
+                <span class="read-time">${post['Time To Read']} min read</span>
             </div>
+            <h2 class="post-title">${post.Title || 'Untitled'}</h2>
             ${tags}
             <p class="post-excerpt">${post.Excerpt}</p>
-            <div class="post-stats">
-                <span class="view-count">${post['View Count']} views</span>
-                <span class="comment-count">${post['Comment Count']} comments</span>
-                <span class="like-count">${post['Like Count']} likes</span>
-            </div>`;
-        container.appendChild(article);
+            <div class="post-footer">
+                <div class="post-stats">
+                    <span class="views"><i class="far fa-eye"></i> ${post['View Count']}</span>
+                    <span class="comments"><i class="far fa-comment"></i> ${post['Comment Count']}</span>
+                    <span class="likes"><i class="far fa-heart"></i> ${post['Like Count']}</span>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function createTagsHTML(tags) {
+    if (!tags || !tags.length) return '';
+    return `
+        <div class="post-tags">
+            ${tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+        </div>
+    `;
+}
+
+function formatDate(dateString) {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
     });
 }
 
-/* load posts on page ready */
+// Load posts when the page is ready
 document.addEventListener('DOMContentLoaded', loadPosts);
