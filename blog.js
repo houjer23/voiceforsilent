@@ -1,3 +1,5 @@
+// python3 -m http.server 8000
+
 async function loadPosts() {
     try {
         const response = await fetch('Posts.csv');
