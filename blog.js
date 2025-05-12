@@ -143,11 +143,7 @@ function createPostCardHTML(post) {
             ${tags}
             <p class="post-excerpt">${post.Excerpt}</p>
             <div class="post-footer">
-                <div class="post-stats">
-                    <span class="views"><i class="far fa-eye"></i> ${post['View Count']}</span>
-                    <span class="comments"><i class="far fa-comment"></i> ${post['Comment Count']}</span>
-                    <span class="likes"><i class="far fa-heart"></i> ${post['Like Count']}</span>
-                </div>
+                <!-- Stats section removed -->
             </div>
         </div>
     `;

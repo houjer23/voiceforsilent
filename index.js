@@ -29,6 +29,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
         
         console.log('Top posts rendered successfully');
+
+        // Add click event for the entire card
+        document.querySelectorAll('.post-card').forEach(card => {
+            card.addEventListener('click', function(e) {
+                // If the click wasn't on the Read More link itself (to avoid double navigation)
+                if (!e.target.classList.contains('post-card-link') && 
+                    !e.target.closest('.post-card-link')) {
+                    // Get the slug from the link element inside this card
+                    const link = this.querySelector('.post-card-link');
+                    if (link && link.href) {
+                        window.location.href = link.href;
+                    }
+                }
+            });
+            // Add pointer cursor to indicate clickable
+            card.style.cursor = 'pointer';
+        });
+
     } catch (err) {
         console.error('Error loading posts:', err);
     }
@@ -50,7 +68,7 @@ function createPostElement(post) {
   
     const date = document.createElement('time');
     date.className = 'post-card-date';
-    // Fallback to “Unknown” if no date
+    // Fallback to "Unknown" if no date
     date.textContent = post['Published Date']
         ? new Date(post['Published Date']).toLocaleDateString(undefined,
           { year:'numeric', month:'short', day:'numeric' })
@@ -92,7 +110,7 @@ function createPostElement(post) {
     article.appendChild(footer);
   
     return article;
-  }  
+}  
 
 /* ----------------------------------------------------------- */
 /*  CSV Parser - Using the same code from post.js              */

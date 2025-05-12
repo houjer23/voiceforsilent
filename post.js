@@ -104,14 +104,9 @@ function renderPost(post) {
 
     // Post footer with stats
     html.push('<footer class="post-footer">');
-    html.push('<div class="post-stats">');
-    html.push(`<span class="views"><i class="far fa-eye"></i> ${post['View Count'] || 0} views</span>`);
-    html.push(`<span class="comments"><i class="far fa-comment"></i> ${post['Comment Count'] || 0} comments</span>`);
-    html.push(`<span class="likes"><i class="far fa-heart"></i> ${post['Like Count'] || 0} likes</span>`);
-    html.push('</div>');
-    
     // Navigation
     html.push('<div class="post-navigation">');
+    html.push('<a href="index.html" class="back-link"><i class="fas fa-home"></i> Back to Home</a>');
     html.push('<a href="blog.html" class="back-link"><i class="fas fa-arrow-left"></i> Back to Blog</a>');
     html.push('</div>');
     html.push('</footer>');
