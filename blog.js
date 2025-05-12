@@ -142,9 +142,6 @@ function createPostCardHTML(post) {
             <h2 class="post-title">${post.Title || 'Untitled'}</h2>
             ${tags}
             <p class="post-excerpt">${post.Excerpt}</p>
-            <div class="post-footer">
-                <!-- Stats section removed -->
-            </div>
         </div>
     `;
 }
