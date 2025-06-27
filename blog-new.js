@@ -1,6 +1,6 @@
 async function loadPosts() {
     try {
-        console.log('Fetching posts from database...');
+        console.log('Fetching posts from API...');
         
         // Fetch posts from the API endpoint
         const response = await fetch('/.netlify/functions/posts?limit=50');
@@ -12,32 +12,16 @@ async function loadPosts() {
         const data = await response.json();
         let posts = data.posts || [];
         
-        console.log('Found', posts.length, 'posts from database');
+        console.log('Found', posts.length, 'posts from API');
         
         // Sort posts by date, most recent first
         posts.sort((a, b) => new Date(b['Published Date']) - new Date(a['Published Date']));
         
         displayPosts(posts);
     } catch (error) {
-        console.error('Error loading posts from database:', error);
-        
-        // Fallback to CSV if API fails
-        try {
-            console.log('Falling back to CSV...');
-            const response = await fetch('Posts.csv');
-            const csvText = await response.text();
-            const posts   = parseCSV(csvText);
-            
-            // Sort posts by date, most recent first
-            posts.sort((a, b) => new Date(b['Published Date']) - new Date(a['Published Date']));
-            
-            displayPosts(posts);
-            console.log('CSV fallback successful');
-        } catch (csvError) {
-            console.error('CSV fallback also failed:', csvError);
-            document.getElementById('posts-container').innerHTML =
-                '<div class="error-message">Error loading posts. Please try again later.</div>';
-        }
+        console.error('Error loading posts from API:', error);
+        document.getElementById('posts-container').innerHTML =
+            '<div class="error-message">Error loading posts. Please check your connection and try again.</div>';
     }
 }
 
@@ -113,91 +97,7 @@ async function filterByCategory(category) {
     }
 }
 
-/* ------------------------------------------------------------------ */
-/* CSV Parser - Keep for fallback                                     */
-/* ------------------------------------------------------------------ */
-function csvToRows(text) {
-    const rows = [];
-    let field  = '';
-    let row    = [];
-    let inQuotes = false;
 
-    for (let i = 0; i < text.length; i++) {
-        const char = text[i];
-        const next = text[i + 1];
-
-        if (char === '"') {
-            // doubled quote inside a quoted field -> literal "
-            if (inQuotes && next === '"') { field += '"'; i++; continue; }
-            inQuotes = !inQuotes;
-            continue;
-        }
-
-        if (char === ',' && !inQuotes) {
-            row.push(field);
-            field = '';
-            continue;
-        }
-
-        if ((char === '\n' || char === '\r') && !inQuotes) {
-            // Windows line‑ends: swallow the \n after \r
-            if (char === '\r' && next === '\n') i++;
-            row.push(field);
-            rows.push(row);
-            row   = [];
-            field = '';
-            continue;
-        }
-
-        field += char;
-    }
-
-    /* push last field / row (file may not end with NL) */
-    if (field.length || inQuotes) row.push(field);
-    if (row.length) rows.push(row);
-    return rows;
-}
-
-function parseCSV(csvText) {
-    const rows = csvToRows(csvText);
-    if (!rows.length) return [];
-
-    const headers = rows.shift().map(h => h.replace(/^"|"$/g, '').trim());
-    const posts   = [];
-
-    for (const valuesRaw of rows) {
-        // skip blank CSV rows
-        if (!valuesRaw.some(v => v.trim())) continue;
-
-        const post = {};
-
-        headers.forEach((header, idx) => {
-            let value = valuesRaw[idx] || '';
-
-            // strip surrounding quotes (not the ones we've un‑escaped)
-            value = value.replace(/^"|"$/g, '').trim();
-
-            /* ---- field‑specific coercions ---- */
-            if (['Tags', 'Categories', 'Related Posts', 'Hashtags'].includes(header)) {
-                try { value = JSON.parse(value || '[]'); } catch { value = []; }
-            } else if (header === 'Rich Content') {
-                try { value = JSON.parse(value || '{}'); } catch { value = {}; }
-            } else if (['View Count', 'Comment Count', 'Like Count'].includes(header)) {
-                value = parseInt(value, 10) || 0;
-            } else if (['Featured', 'Pinned', 'Cover Image Displayed'].includes(header)) {
-                value = value.toLowerCase() === 'true';
-            }
-            post[header] = value;
-        });
-
-        /* fallback title if the column is empty */
-        if (!post.Title && post['Plain Content'])
-            post.Title = post['Plain Content'].slice(0, 60) + '…';
-
-        posts.push(post);
-    }
-    return posts;
-}
 
 /* ------------------------------------------------------------------ */
 /* Display posts (unchanged from original)                            */
