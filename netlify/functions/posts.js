@@ -1,6 +1,30 @@
-import { neon } from '@neondatabase/serverless';
+const { neon } = require('@neondatabase/serverless');
 
-const sql = neon(process.env.NEON_DATABASE_URL);
+// Get database URL from environment
+const DATABASE_URL = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL;
+
+console.log('Environment check:', {
+    hasNeonUrl: !!process.env.NEON_DATABASE_URL,
+    hasDbUrl: !!process.env.DATABASE_URL,
+    nodeEnv: process.env.NODE_ENV
+});
+
+if (!DATABASE_URL) {
+    console.error('❌ NEON_DATABASE_URL environment variable not found');
+    console.error('Available env vars:', Object.keys(process.env).filter(key => 
+        key.toLowerCase().includes('database') || key.toLowerCase().includes('neon')
+    ));
+}
+
+let sql;
+try {
+    if (DATABASE_URL) {
+        sql = neon(DATABASE_URL);
+        console.log('✅ Database connection initialized');
+    }
+} catch (initError) {
+    console.error('❌ Failed to initialize database connection:', initError);
+}
 
 /**
  * Transform database row to match original CSV structure
@@ -37,7 +61,13 @@ function transformPostFromDb(dbPost) {
     };
 }
 
-export const handler = async (event, context) => {
+exports.handler = async (event, context) => {
+    console.log('Function called:', {
+        method: event.httpMethod,
+        path: event.path,
+        query: event.queryStringParameters
+    });
+
     // Add CORS headers
     const headers = {
         'Access-Control-Allow-Origin': '*',
@@ -55,9 +85,24 @@ export const handler = async (event, context) => {
         };
     }
 
+    // Check if database is available
+    if (!DATABASE_URL || !sql) {
+        console.error('❌ Database not available');
+        return {
+            statusCode: 500,
+            headers,
+            body: JSON.stringify({ 
+                error: 'Database configuration error',
+                message: 'Database connection not available'
+            })
+        };
+    }
+
     try {
         const { httpMethod, path, queryStringParameters } = event;
         const pathParts = path.split('/').filter(Boolean);
+
+        console.log('Processing request:', { httpMethod, pathParts });
 
         // GET /posts - Get all posts or search
         if (httpMethod === 'GET' && pathParts[pathParts.length - 1] === 'posts') {
@@ -70,6 +115,8 @@ export const handler = async (event, context) => {
                 featured,
                 language = 'en'
             } = queryStringParameters || {};
+
+            console.log('Query parameters:', { limit, offset, search, category, tag, featured, language });
 
             let query = `
                 SELECT 
@@ -127,8 +174,12 @@ export const handler = async (event, context) => {
             query += ` ORDER BY published_date DESC LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}`;
             params.push(parseInt(limit), parseInt(offset));
 
+            console.log('Executing query with params:', params);
+
             const result = await sql(query, params);
             const posts = result.map(transformPostFromDb);
+
+            console.log(`✅ Successfully fetched ${posts.length} posts`);
 
             return {
                 statusCode: 200,
@@ -145,6 +196,8 @@ export const handler = async (event, context) => {
         // GET /posts/{slug} - Get single post
         if (httpMethod === 'GET' && pathParts.length >= 2) {
             const slug = pathParts[pathParts.length - 1];
+
+            console.log('Fetching post with slug:', slug);
 
             const result = await sql`
                 SELECT 
@@ -178,6 +231,8 @@ export const handler = async (event, context) => {
             const post = transformPostFromDb(result[0]);
             post['View Count'] = (post['View Count'] || 0) + 1; // Update the returned post
 
+            console.log(`✅ Successfully fetched post: ${post.Title}`);
+
             return {
                 statusCode: 200,
                 headers,
@@ -186,6 +241,7 @@ export const handler = async (event, context) => {
         }
 
         // If no route matches
+        console.log('❌ No route matched');
         return {
             statusCode: 404,
             headers,
@@ -193,13 +249,16 @@ export const handler = async (event, context) => {
         };
 
     } catch (error) {
-        console.error('API Error:', error);
+        console.error('❌ API Error:', error);
+        console.error('Error stack:', error.stack);
+        
         return {
             statusCode: 500,
             headers,
             body: JSON.stringify({ 
                 error: 'Internal server error',
-                message: error.message
+                message: error.message,
+                details: error.stack
             })
         };
     }

@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        console.log('Fetching posts from API...');
+        console.log('Fetching posts from database...');
         
         // Fetch posts from the API endpoint
         const response = await fetch('/.netlify/functions/posts?limit=3&featured=true');
@@ -62,9 +62,38 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     } catch (err) {
         console.error('Error loading posts:', err);
-        const blogPostsSection = document.querySelector('.blog-section .blog-posts');
-        if (blogPostsSection) {
-            blogPostsSection.innerHTML = '<div class="error-message">Unable to load posts. Please check your connection and try again.</div>';
+        
+        // Fallback to CSV if API fails (for development/transition period)
+        try {
+            console.log('Falling back to CSV...');
+            const csv = await (await fetch('Posts.csv')).text();
+            const posts = parseCSV(csv);
+            
+            // Same logic as above for rendering posts
+            const sortedPosts = posts.sort((a, b) => {
+                const dateA = a['Published Date'] ? new Date(a['Published Date']) : new Date(0);
+                const dateB = b['Published Date'] ? new Date(b['Published Date']) : new Date(0);
+                return dateB - dateA;
+            });
+            
+            const topPosts = sortedPosts.slice(0, 3);
+            const blogPostsSection = document.querySelector('.blog-section .blog-posts');
+            
+            if (blogPostsSection) {
+                blogPostsSection.innerHTML = '';
+                topPosts.forEach(post => {
+                    const postElement = createPostElement(post);
+                    blogPostsSection.appendChild(postElement);
+                });
+            }
+            
+            console.log('Fallback to CSV successful');
+        } catch (csvErr) {
+            console.error('CSV fallback also failed:', csvErr);
+            const blogPostsSection = document.querySelector('.blog-section .blog-posts');
+            if (blogPostsSection) {
+                blogPostsSection.innerHTML = '<div class="error-message">Unable to load posts. Please try again later.</div>';
+            }
         }
     }
 });
@@ -128,4 +157,89 @@ function createPostElement(post) {
     return article;
 }  
 
- 
+/* ----------------------------------------------------------- */
+/*  CSV Parser - Keep for fallback                             */
+/* ----------------------------------------------------------- */
+
+function csvToRows(text) {
+    const rows = [];
+    let field  = '';
+    let row    = [];
+    let inQuotes = false;
+
+    for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+        const next = text[i + 1];
+
+        if (char === '"') {
+            // doubled quote inside a quoted field -> literal "
+            if (inQuotes && next === '"') { field += '"'; i++; continue; }
+            inQuotes = !inQuotes;
+            continue;
+        }
+
+        if (char === ',' && !inQuotes) {
+            row.push(field);
+            field = '';
+            continue;
+        }
+
+        if ((char === '\n' || char === '\r') && !inQuotes) {
+            // Windows line‑ends: swallow the \n after \r
+            if (char === '\r' && next === '\n') i++;
+            row.push(field);
+            rows.push(row);
+            row   = [];
+            field = '';
+            continue;
+        }
+
+        field += char;
+    }
+
+    /* push last field / row (file may not end with NL) */
+    if (field.length || inQuotes) row.push(field);
+    if (row.length) rows.push(row);
+    return rows;
+}
+
+function parseCSV(csvText) {
+    const rows = csvToRows(csvText);
+    if (!rows.length) return [];
+
+    const headers = rows.shift().map(h => h.replace(/^"|"$/g, '').trim());
+    const posts   = [];
+
+    for (const valuesRaw of rows) {
+        // skip blank CSV rows
+        if (!valuesRaw.some(v => v.trim())) continue;
+
+        const post = {};
+
+        headers.forEach((header, idx) => {
+            let value = valuesRaw[idx] || '';
+
+            // strip surrounding quotes (not the ones we've un‑escaped)
+            value = value.replace(/^"|"$/g, '').trim();
+
+            /* ---- field‑specific coercions ---- */
+            if (['Tags', 'Categories', 'Related Posts', 'Hashtags'].includes(header)) {
+                try { value = JSON.parse(value || '[]'); } catch { value = []; }
+            } else if (header === 'Rich Content') {
+                try { value = JSON.parse(value || '{}'); } catch { value = {}; }
+            } else if (['View Count', 'Comment Count', 'Like Count'].includes(header)) {
+                value = parseInt(value, 10) || 0;
+            } else if (['Featured', 'Pinned', 'Cover Image Displayed'].includes(header)) {
+                value = value.toLowerCase() === 'true';
+            }
+            post[header] = value;
+        });
+
+        /* fallback title if the column is empty */
+        if (!post.Title && post['Plain Content'])
+            post.Title = post['Plain Content'].slice(0, 60) + '…';
+
+        posts.push(post);
+    }
+    return posts;
+} 
