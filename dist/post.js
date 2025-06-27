@@ -13,85 +13,37 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    await loadPost(slug, target);
-});
-
-async function loadPost(slug, target) {
     try {
-        console.log('Fetching post from database...');
+        console.log('Fetching Posts.csv...');
+        const csv   = await (await fetch('Posts.csv')).text();
+        const posts = parseCSV(csv);
+        console.log('Found', posts.length, 'posts');
         
-        // Try to fetch from API first
-        const response = await fetch(`/.netlify/functions/posts/${slug}`);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        const post = data.post;
-        
-        console.log('Found post from database:', post ? 'yes' : 'no');
-        
+        const post  = posts.find(p => p.Slug === slug);
+        console.log('Found post:', post ? 'yes' : 'no');
+
         if (!post) {
             target.innerHTML = '<div class="error-message">Post not found.</div>';
             return;
         }
 
         target.innerHTML = renderPost(post);
-        console.log('Post rendered successfully from database');
+        console.log('Post rendered successfully');
 
         // Add smooth scroll behavior for headings
         document.querySelectorAll('.post-content a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function (e) {
                 e.preventDefault();
-                const targetElement = document.querySelector(this.getAttribute('href'));
-                if (targetElement) {
-                    targetElement.scrollIntoView({
-                        behavior: 'smooth'
-                    });
-                }
-            });
-        });
-
-    } catch (error) {
-        console.error('Error loading post from database:', error);
-        
-        // Fallback to CSV
-        try {
-            console.log('Falling back to CSV...');
-            const csv = await (await fetch('Posts.csv')).text();
-            const posts = parseCSV(csv);
-            console.log('Found', posts.length, 'posts from CSV');
-            
-            const post = posts.find(p => p.Slug === slug);
-            console.log('Found post from CSV:', post ? 'yes' : 'no');
-
-            if (!post) {
-                target.innerHTML = '<div class="error-message">Post not found.</div>';
-                return;
-            }
-
-            target.innerHTML = renderPost(post);
-            console.log('CSV fallback successful');
-
-            // Add smooth scroll behavior for headings
-            document.querySelectorAll('.post-content a[href^="#"]').forEach(anchor => {
-                anchor.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    const targetElement = document.querySelector(this.getAttribute('href'));
-                    if (targetElement) {
-                        targetElement.scrollIntoView({
-                            behavior: 'smooth'
-                        });
-                    }
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
                 });
             });
-        } catch (csvError) {
-            console.error('CSV fallback also failed:', csvError);
-            target.innerHTML = '<div class="error-message">Error loading post. Please try again later.</div>';
-        }
+        });
+    } catch (err) {
+        console.error('Error loading post:', err);
+        target.innerHTML = '<div class="error-message">Error loading post.</div>';
     }
-}
+});
 
 /* ---- very small renderer for the Rich Content format ---- */
 function renderPost(post) {
