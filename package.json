@@ -1,0 +1,19 @@
+{
+  "name": "voice-for-silence-migration",
+  "version": "1.0.0",
+  "description": "Migration scripts for VoiceForSilence blog to Neon database",
+  "main": "migrate.js",
+  "scripts": {
+    "migrate": "node migrate.js",
+    "test-connection": "node test-connection.js"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^0.7.2",
+    "csv-parser": "^3.0.0",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "type": "module"
+} 
