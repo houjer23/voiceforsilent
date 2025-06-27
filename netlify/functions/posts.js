@@ -1,11 +1,12 @@
 const { neon } = require('@neondatabase/serverless');
 
 // Get database URL from environment
-const DATABASE_URL = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL;
+const DATABASE_URL = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL || process.env.NETLIFY_DATABASE_URL;
 
 console.log('Environment check:', {
     hasNeonUrl: !!process.env.NEON_DATABASE_URL,
     hasDbUrl: !!process.env.DATABASE_URL,
+    hasNetlifyDbUrl: !!process.env.NETLIFY_DATABASE_URL,
     nodeEnv: process.env.NODE_ENV
 });
 
