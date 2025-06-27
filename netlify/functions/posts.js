@@ -10,14 +10,21 @@ console.log('Environment check:', {
     hasNetlifyDbUrl: !!process.env.NETLIFY_DATABASE_URL,
     hasNetlifyDbUrlUnpooled: !!process.env.NETLIFY_DATABASE_URL_UNPOOLED,
     usingUrl: DATABASE_URL ? 'found' : 'missing',
+    actualUrl: DATABASE_URL ? DATABASE_URL.substring(0, 20) + '...' : 'NONE',
     nodeEnv: process.env.NODE_ENV
 });
 
 if (!DATABASE_URL) {
-    console.error('❌ NEON_DATABASE_URL environment variable not found');
-    console.error('Available env vars:', Object.keys(process.env).filter(key => 
+    console.error('❌ No database URL found in any environment variable');
+    console.error('All env vars containing database/neon:', Object.keys(process.env).filter(key => 
         key.toLowerCase().includes('database') || key.toLowerCase().includes('neon')
     ));
+    console.error('Full env check:', {
+        NEON_DATABASE_URL: process.env.NEON_DATABASE_URL ? 'EXISTS' : 'MISSING',
+        DATABASE_URL: process.env.DATABASE_URL ? 'EXISTS' : 'MISSING',
+        NETLIFY_DATABASE_URL: process.env.NETLIFY_DATABASE_URL ? 'EXISTS' : 'MISSING',
+        NETLIFY_DATABASE_URL_UNPOOLED: process.env.NETLIFY_DATABASE_URL_UNPOOLED ? 'EXISTS' : 'MISSING'
+    });
 }
 
 let sql;
@@ -25,9 +32,12 @@ try {
     if (DATABASE_URL) {
         sql = neon(DATABASE_URL);
         console.log('✅ Database connection initialized');
+    } else {
+        console.error('❌ Cannot initialize database - no connection string available');
     }
 } catch (initError) {
     console.error('❌ Failed to initialize database connection:', initError);
+    console.error('Connection string used:', DATABASE_URL ? DATABASE_URL.substring(0, 30) + '...' : 'NONE');
 }
 
 /**
