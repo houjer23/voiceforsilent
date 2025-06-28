@@ -15,7 +15,7 @@
 
 [dev]
   functions = "netlify/functions"
-  publish = "."
+  publish = "dist"
   
 [[redirects]]
   from = "/api/*"

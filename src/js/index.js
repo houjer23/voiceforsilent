@@ -2,8 +2,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
         console.log('Fetching posts from database...');
         
-        // Fetch posts from the API endpoint
-        const response = await fetch('/.netlify/functions/posts?limit=3&featured=true');
+        // Fetch posts from the API endpoint - get recent posts instead of featured
+        const response = await fetch('/.netlify/functions/posts?limit=3');
         
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
