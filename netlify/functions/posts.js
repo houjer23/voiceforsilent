@@ -34,7 +34,7 @@ try {
         console.log('✅ Database connection initialized');
     } else {
         console.error('❌ Cannot initialize database - no connection string available');
-    }
+}
 } catch (initError) {
     console.error('❌ Failed to initialize database connection:', initError);
     console.error('Connection string used:', DATABASE_URL ? DATABASE_URL.substring(0, 30) + '...' : 'NONE');
