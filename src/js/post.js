@@ -130,17 +130,17 @@ function renderPost(post) {
     
     // Views and likes
     const viewCount = post['View Count'] || 0;
-    const likeCount = post['Like Count'] || 0;
+    const baseLikeCount = post['Like Count'] || 0;
     
     // Check if user has liked this post
     const isLiked = isPostLiked(post.Slug);
     const heartClass = isLiked ? 'fas fa-heart liked' : 'far fa-heart';
-    const currentLikes = isLiked ? likeCount + 1 : likeCount;
+    const displayLikes = baseLikeCount + (isLiked ? 1 : 0);
     
     html.push(`<span class="post-views"><i class="far fa-eye"></i> ${viewCount} views</span>`);
-    html.push(`<button class="like-button" data-slug="${post.Slug}" data-likes="${likeCount}">
+    html.push(`<button class="like-button ${isLiked ? 'liked' : ''}" data-slug="${post.Slug}" data-base-likes="${baseLikeCount}">
         <i class="${heartClass}"></i> 
-        <span class="like-count">${currentLikes}</span> likes
+        <span class="like-count">${displayLikes}</span> likes
     </button>`);
     
     html.push('</div>');
@@ -350,7 +350,7 @@ function initializeLikeButtons() {
         e.stopPropagation();
         
         const slug = likeButton.dataset.slug;
-        const baseLikes = parseInt(likeButton.dataset.likes, 10);
+        const baseLikes = parseInt(likeButton.dataset.baseLikes, 10);
         const heartIcon = likeButton.querySelector('i');
         const likeCountSpan = likeButton.querySelector('.like-count');
         
