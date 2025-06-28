@@ -207,6 +207,75 @@ exports.handler = async (event, context) => {
             };
         }
 
+        // POST /posts/{slug}/like - Toggle like for a post
+        if (httpMethod === 'POST' && pathParts.length >= 3 && pathParts[pathParts.length - 1] === 'like') {
+            const slug = pathParts[pathParts.length - 2];
+            
+            console.log('Toggling like for post:', slug);
+            
+            try {
+                const body = JSON.parse(event.body || '{}');
+                const { action } = body; // 'like' or 'unlike'
+                
+                let updateQuery;
+                if (action === 'like') {
+                    updateQuery = sql`
+                        UPDATE posts 
+                        SET like_count = like_count + 1,
+                            updated_at = CURRENT_TIMESTAMP
+                        WHERE slug = ${slug}
+                        RETURNING like_count
+                    `;
+                } else if (action === 'unlike') {
+                    updateQuery = sql`
+                        UPDATE posts 
+                        SET like_count = GREATEST(like_count - 1, 0),
+                            updated_at = CURRENT_TIMESTAMP
+                        WHERE slug = ${slug}
+                        RETURNING like_count
+                    `;
+                } else {
+                    return {
+                        statusCode: 400,
+                        headers,
+                        body: JSON.stringify({ error: 'Invalid action. Use "like" or "unlike".' })
+                    };
+                }
+                
+                const result = await updateQuery;
+                
+                if (result.length === 0) {
+                    return {
+                        statusCode: 404,
+                        headers,
+                        body: JSON.stringify({ error: 'Post not found' })
+                    };
+                }
+                
+                const newLikeCount = result[0].like_count;
+                
+                console.log(`✅ Like ${action} successful for ${slug}, new count: ${newLikeCount}`);
+                
+                return {
+                    statusCode: 200,
+                    headers,
+                    body: JSON.stringify({ 
+                        success: true,
+                        action,
+                        likeCount: newLikeCount
+                    })
+                };
+                
+            } catch (parseError) {
+                console.error('Error parsing request body:', parseError);
+                return {
+                    statusCode: 400,
+                    headers,
+                    body: JSON.stringify({ error: 'Invalid request body' })
+                };
+            }
+        }
+
         // GET /posts/{slug} - Get single post
         if (httpMethod === 'GET' && pathParts.length >= 2) {
             const slug = pathParts[pathParts.length - 1];

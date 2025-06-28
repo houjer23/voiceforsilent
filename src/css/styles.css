@@ -206,10 +206,15 @@ nav {
     padding: var(--spacing-xs) var(--spacing-sm);
 }
 
-.like-button:hover {
+.like-button:hover:not(:disabled) {
     background: rgba(220, 38, 127, 0.1);
     color: #dc267f;
     transform: scale(1.05);
+}
+
+.like-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 .like-button i {

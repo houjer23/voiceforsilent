@@ -231,12 +231,11 @@ function createPostCardHTML(post) {
     // Get author, views, and likes with fallback values
     const author = post.Author || 'Anonymous';
     const viewCount = post['View Count'] || 0;
-    const baseLikeCount = post['Like Count'] || 0;
+    const likeCount = post['Like Count'] || 0;
     
-    // Check if user has liked this post
+    // Check if user has liked this post locally (for UI state only)
     const isLiked = isPostLiked(post.Slug);
     const heartClass = isLiked ? 'fas fa-heart liked' : 'far fa-heart';
-    const displayLikes = baseLikeCount + (isLiked ? 1 : 0);
 
     return `
         <div class="post-card-content">
@@ -250,9 +249,9 @@ function createPostCardHTML(post) {
             <p class="post-excerpt">${post.Excerpt}</p>
             <div class="post-stats">
                 <span class="views"><i class="far fa-eye"></i> ${viewCount} views</span>
-                <button class="like-button ${isLiked ? 'liked' : ''}" data-slug="${post.Slug}" data-base-likes="${baseLikeCount}">
+                <button class="like-button ${isLiked ? 'liked' : ''}" data-slug="${post.Slug}">
                     <i class="${heartClass}"></i> 
-                    <span class="like-count">${displayLikes}</span> likes
+                    <span class="like-count">${likeCount}</span> likes
                 </button>
             </div>
         </div>
@@ -315,24 +314,64 @@ function isPostLiked(slug) {
     return likedPosts.includes(slug);
 }
 
-function toggleLike(slug) {
+function toggleLike(slug, forceState = null) {
     const likedPosts = JSON.parse(localStorage.getItem('likedPosts') || '[]');
     const index = likedPosts.indexOf(slug);
     
-    if (index > -1) {
-        // Unlike
-        likedPosts.splice(index, 1);
+    if (forceState !== null) {
+        // Force a specific state
+        if (forceState && index === -1) {
+            likedPosts.push(slug);
+        } else if (!forceState && index > -1) {
+            likedPosts.splice(index, 1);
+        }
+        localStorage.setItem('likedPosts', JSON.stringify(likedPosts));
+        return forceState;
     } else {
-        // Like
-        likedPosts.push(slug);
+        // Toggle normally
+        if (index > -1) {
+            // Unlike
+            likedPosts.splice(index, 1);
+        } else {
+            // Like
+            likedPosts.push(slug);
+        }
+        
+        localStorage.setItem('likedPosts', JSON.stringify(likedPosts));
+        return index === -1; // Returns true if just liked, false if just unliked
     }
-    
-    localStorage.setItem('likedPosts', JSON.stringify(likedPosts));
-    return index === -1; // Returns true if just liked, false if just unliked
+}
+
+async function handleLikeToggle(slug, isCurrentlyLiked) {
+    try {
+        const action = isCurrentlyLiked ? 'unlike' : 'like';
+        
+        const response = await fetch(`/.netlify/functions/posts/${slug}/like`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ action })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        return {
+            success: true,
+            newLikeCount: data.likeCount,
+            isLiked: action === 'like'
+        };
+    } catch (error) {
+        console.error('Error toggling like:', error);
+        return { success: false, error: error.message };
+    }
 }
 
 function initializeLikeButtons() {
-    document.addEventListener('click', (e) => {
+    document.addEventListener('click', async (e) => {
         // Check if clicked element is a like button or inside one
         const likeButton = e.target.closest('.like-button');
         if (!likeButton) return;
@@ -340,31 +379,51 @@ function initializeLikeButtons() {
         e.preventDefault();
         e.stopPropagation(); // Prevent card click navigation
         
+        // Prevent multiple clicks while processing
+        if (likeButton.disabled) return;
+        likeButton.disabled = true;
+        
         const slug = likeButton.dataset.slug;
-        const baseLikes = parseInt(likeButton.dataset.baseLikes, 10);
         const heartIcon = likeButton.querySelector('i');
         const likeCountSpan = likeButton.querySelector('.like-count');
+        const isCurrentlyLiked = likeButton.classList.contains('liked');
         
-        // Toggle like state
-        const isNowLiked = toggleLike(slug);
-        
-        // Update UI with animation
+        // Add loading state
         likeButton.classList.add('animating');
         
-        if (isNowLiked) {
-            heartIcon.className = 'fas fa-heart liked';
-            likeCountSpan.textContent = baseLikes + 1;
-            likeButton.classList.add('liked');
-        } else {
-            heartIcon.className = 'far fa-heart';
-            likeCountSpan.textContent = baseLikes;
-            likeButton.classList.remove('liked');
+        try {
+            const result = await handleLikeToggle(slug, isCurrentlyLiked);
+            
+            if (result.success) {
+                // Update UI with new count from server
+                likeCountSpan.textContent = result.newLikeCount;
+                
+                if (result.isLiked) {
+                    heartIcon.className = 'fas fa-heart liked';
+                    likeButton.classList.add('liked');
+                    // Update local storage for UI consistency
+                    toggleLike(slug, true);
+                } else {
+                    heartIcon.className = 'far fa-heart';
+                    likeButton.classList.remove('liked');
+                    // Update local storage for UI consistency
+                    toggleLike(slug, false);
+                }
+            } else {
+                // Revert UI on error
+                console.error('Failed to update like:', result.error);
+                alert('Failed to update like. Please try again.');
+            }
+        } catch (error) {
+            console.error('Error in like button handler:', error);
+            alert('Failed to update like. Please try again.');
+        } finally {
+            // Remove loading state and re-enable button
+            setTimeout(() => {
+                likeButton.classList.remove('animating');
+                likeButton.disabled = false;
+            }, 200);
         }
-        
-        // Remove animation class after animation completes
-        setTimeout(() => {
-            likeButton.classList.remove('animating');
-        }, 200);
     });
 }
 
