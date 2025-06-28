@@ -232,6 +232,11 @@ function createPostCardHTML(post) {
     const author = post.Author || 'Anonymous';
     const viewCount = post['View Count'] || 0;
     const likeCount = post['Like Count'] || 0;
+    
+    // Check if user has liked this post
+    const isLiked = isPostLiked(post.Slug);
+    const heartClass = isLiked ? 'fas fa-heart liked' : 'far fa-heart';
+    const currentLikes = isLiked ? likeCount + 1 : likeCount;
 
     return `
         <div class="post-card-content">
@@ -245,7 +250,10 @@ function createPostCardHTML(post) {
             <p class="post-excerpt">${post.Excerpt}</p>
             <div class="post-stats">
                 <span class="views"><i class="far fa-eye"></i> ${viewCount} views</span>
-                <span class="likes"><i class="far fa-heart"></i> ${likeCount} likes</span>
+                <button class="like-button" data-slug="${post.Slug}" data-likes="${likeCount}">
+                    <i class="${heartClass}"></i> 
+                    <span class="like-count">${currentLikes}</span> likes
+                </button>
             </div>
         </div>
     `;
@@ -298,8 +306,71 @@ function initializeSearch() {
     }
 }
 
+/* ------------------------------------------------------------------ */
+/* Like functionality                                                  */
+/* ------------------------------------------------------------------ */
+
+function isPostLiked(slug) {
+    const likedPosts = JSON.parse(localStorage.getItem('likedPosts') || '[]');
+    return likedPosts.includes(slug);
+}
+
+function toggleLike(slug) {
+    const likedPosts = JSON.parse(localStorage.getItem('likedPosts') || '[]');
+    const index = likedPosts.indexOf(slug);
+    
+    if (index > -1) {
+        // Unlike
+        likedPosts.splice(index, 1);
+    } else {
+        // Like
+        likedPosts.push(slug);
+    }
+    
+    localStorage.setItem('likedPosts', JSON.stringify(likedPosts));
+    return index === -1; // Returns true if just liked, false if just unliked
+}
+
+function initializeLikeButtons() {
+    document.addEventListener('click', (e) => {
+        // Check if clicked element is a like button or inside one
+        const likeButton = e.target.closest('.like-button');
+        if (!likeButton) return;
+        
+        e.preventDefault();
+        e.stopPropagation(); // Prevent card click navigation
+        
+        const slug = likeButton.dataset.slug;
+        const baseLikes = parseInt(likeButton.dataset.likes, 10);
+        const heartIcon = likeButton.querySelector('i');
+        const likeCountSpan = likeButton.querySelector('.like-count');
+        
+        // Toggle like state
+        const isNowLiked = toggleLike(slug);
+        
+        // Update UI with animation
+        likeButton.classList.add('animating');
+        
+        if (isNowLiked) {
+            heartIcon.className = 'fas fa-heart liked';
+            likeCountSpan.textContent = baseLikes + 1;
+            likeButton.classList.add('liked');
+        } else {
+            heartIcon.className = 'far fa-heart';
+            likeCountSpan.textContent = baseLikes;
+            likeButton.classList.remove('liked');
+        }
+        
+        // Remove animation class after animation completes
+        setTimeout(() => {
+            likeButton.classList.remove('animating');
+        }, 200);
+    });
+}
+
 // Load posts when the page is ready
 document.addEventListener('DOMContentLoaded', () => {
     loadPosts();
     initializeSearch();
+    initializeLikeButtons();
 }); 

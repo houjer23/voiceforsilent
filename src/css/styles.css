@@ -185,10 +185,63 @@ nav {
     color: var(--primary-color);
 }
 
-.post-stats .views,
-.post-stats .likes {
+.post-stats .views {
     display: flex;
     align-items: center;
+}
+
+/* Like Button Styles */
+.like-button {
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    transition: all 0.2s ease;
+    border-radius: 6px;
+    padding: var(--spacing-xs) var(--spacing-sm);
+}
+
+.like-button:hover {
+    background: rgba(220, 38, 127, 0.1);
+    color: #dc267f;
+    transform: scale(1.05);
+}
+
+.like-button i {
+    transition: all 0.2s ease;
+    font-size: 1rem;
+}
+
+.like-button.liked i {
+    color: #dc267f;
+    animation: heartPulse 0.3s ease;
+}
+
+.like-button.animating {
+    transform: scale(1.1);
+}
+
+.like-button.animating i {
+    animation: heartBounce 0.3s ease;
+}
+
+/* Heart animations */
+@keyframes heartPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+@keyframes heartBounce {
+    0%, 100% { transform: scale(1); }
+    25% { transform: scale(1.2); }
+    50% { transform: scale(1.1); }
+    75% { transform: scale(1.15); }
 }
 
 .post-author,
