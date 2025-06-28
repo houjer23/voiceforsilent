@@ -215,7 +215,11 @@ function displayPosts(posts) {
         const article = document.createElement('article');
         article.className = 'blog-post';
         article.innerHTML = createPostCardHTML(post);
-        article.addEventListener('click', () => {
+        article.addEventListener('click', (e) => {
+            // Don't navigate if clicking on like button or its children
+            if (e.target.closest('.like-button')) {
+                return;
+            }
             window.location.href = `post.html?slug=${encodeURIComponent(post.Slug)}`;
         });
         postsGrid.appendChild(article);
@@ -251,7 +255,7 @@ function createPostCardHTML(post) {
                 <span class="views"><i class="far fa-eye"></i> ${viewCount} views</span>
                 <button class="like-button ${isLiked ? 'liked' : ''}" data-slug="${post.Slug}">
                     <i class="${heartClass}"></i> 
-                    <span class="like-count">${likeCount}</span> likes
+                    <span class="like-count">${likeCount}</span>
                 </button>
             </div>
         </div>

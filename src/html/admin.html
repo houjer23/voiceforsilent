@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - CSV Upload - Voice for Silent</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .admin-container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        
+        .upload-section {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+        
+        .drop-zone {
+            border: 3px dashed #e1e5e9;
+            border-radius: 12px;
+            padding: 3rem 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: #007bff;
+            background-color: #f8f9fa;
+        }
+        
+        .drop-zone.dragover {
+            border-color: #0056b3;
+            background-color: #e7f3ff;
+        }
+        
+        .drop-icon {
+            font-size: 3rem;
+            color: #6c757d;
+            margin-bottom: 1rem;
+        }
+        
+        .preview-section {
+            display: none;
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+        
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #e9ecef;
+        }
+        
+        .posts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .post-preview {
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 1.5rem;
+            background: #f8f9fa;
+        }
+        
+        .post-preview.new {
+            border-color: #28a745;
+            background: #f8fff9;
+        }
+        
+        .post-preview.existing {
+            border-color: #ffc107;
+            background: #fffbf0;
+        }
+        
+        .post-status {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        
+        .status-new {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-existing {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+        
+        .btn {
+            padding: 0.75rem 2rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #007bff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="logo">
+                <a href="index.html">Voice for Silent</a>
+            </div>
+            <div class="nav-links">
+                <a href="index.html">Home</a>
+                <a href="about.html">About</a>
+                <a href="blog.html">Blog</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="admin-container">
+        <h1>CSV Upload Admin</h1>
+        <p>Upload a CSV file to import new articles into the database.</p>
+
+        <!-- Upload Section -->
+        <section class="upload-section">
+            <div class="drop-zone" id="dropZone">
+                <div class="drop-icon">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                </div>
+                <h3>Drop CSV file here or click to upload</h3>
+                <p>Supports .csv files up to 10MB</p>
+                <input type="file" id="fileInput" class="file-input" accept=".csv" />
+            </div>
+        </section>
+
+        <!-- Loading Section -->
+        <section class="loading" id="loadingSection">
+            <div class="spinner"></div>
+            <p>Processing CSV file...</p>
+        </section>
+
+        <!-- Preview Section -->
+        <section class="preview-section" id="previewSection">
+            <div class="preview-header">
+                <h2>Preview New Articles</h2>
+                <div>
+                    <span id="newCount" class="status-new post-status">0 New</span>
+                    <span id="existingCount" class="status-existing post-status">0 Existing</span>
+                </div>
+            </div>
+            
+            <div id="postsContainer" class="posts-grid">
+                <!-- Preview posts will be inserted here -->
+            </div>
+            
+            <div class="action-buttons">
+                <button class="btn btn-secondary" id="cancelBtn">Cancel</button>
+                <button class="btn btn-primary" id="importBtn" disabled>
+                    <i class="fas fa-database"></i>
+                    Import New Articles
+                </button>
+            </div>
+        </section>
+
+        <!-- Success Section -->
+        <section class="success-section hidden" id="successSection">
+            <div class="success-message">
+                <h3><i class="fas fa-check-circle"></i> Import Successful!</h3>
+                <p id="successMessage">Articles have been imported successfully.</p>
+            </div>
+            <div class="action-buttons">
+                <a href="blog.html" class="btn btn-primary">
+                    <i class="fas fa-eye"></i>
+                    View Blog
+                </a>
+                <button class="btn btn-secondary" id="newUploadBtn">
+                    <i class="fas fa-upload"></i>
+                    Upload Another CSV
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="footer-content">
+            <h3 class="footer-title">Voice for Silent</h3>
+            <div class="footer-contacts">
+                <a href="mailto:ellajyx@gmail.com" class="footer-email">ellajyx@gmail.com</a>
+                <a href="mailto:R_yuling@outlook.com" class="footer-email">R_yuling@outlook.com</a>
+            </div>
+            <p class="copyright">&copy;2023 by Voice for Silent. Created with Wix.com</p>
+        </div>
+    </footer>
+
+    <script src="admin.js"></script>
+</body>
+</html> 

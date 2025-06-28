@@ -849,6 +849,24 @@ nav {
     text-underline-offset: 2px;
 }
 
+.post-body a {
+    color: var(--primary-color);
+    text-decoration: underline;
+    text-decoration-color: var(--secondary-color);
+    text-underline-offset: 2px;
+    transition: all 0.3s ease;
+}
+
+.post-body a:hover {
+    color: var(--secondary-color);
+    text-decoration-color: var(--primary-color);
+    text-decoration-thickness: 2px;
+}
+
+.post-body a:visited {
+    color: #5e35b1;
+}
+
 /* Blog card footer styles */
 .post-card .post-footer {
     display: flex;

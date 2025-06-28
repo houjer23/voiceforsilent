@@ -139,7 +139,7 @@ function renderPost(post) {
     html.push(`<span class="post-views"><i class="far fa-eye"></i> ${viewCount} views</span>`);
     html.push(`<button class="like-button ${isLiked ? 'liked' : ''}" data-slug="${post.Slug}">
         <i class="${heartClass}"></i> 
-        <span class="like-count">${likeCount}</span> likes
+        <span class="like-count">${likeCount}</span>
     </button>`);
     
     html.push('</div>');
@@ -201,6 +201,13 @@ function decorateText(t) {
                 break;
             case 'UNDERLINE':
                 text = `<u>${text}</u>`;
+                break;
+            case 'LINK':
+                if (decoration.linkData && decoration.linkData.link) {
+                    const url = decoration.linkData.link.url;
+                    const target = decoration.linkData.link.target === 'BLANK' ? '_blank' : '_self';
+                    text = `<a href="${url}" target="${target}" rel="noopener noreferrer">${text}</a>`;
+                }
                 break;
             case 'COLOR':
                 if (decoration.colorData) {

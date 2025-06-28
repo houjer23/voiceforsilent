@@ -215,7 +215,11 @@ function displayPosts(posts) {
         const article = document.createElement('article');
         article.className = 'blog-post';
         article.innerHTML = createPostCardHTML(post);
-        article.addEventListener('click', () => {
+        article.addEventListener('click', (e) => {
+            // Don't navigate if clicking on like button or its children
+            if (e.target.closest('.like-button')) {
+                return;
+            }
             window.location.href = `post.html?slug=${encodeURIComponent(post.Slug)}`;
         });
         postsGrid.appendChild(article);
@@ -232,6 +236,10 @@ function createPostCardHTML(post) {
     const author = post.Author || 'Anonymous';
     const viewCount = post['View Count'] || 0;
     const likeCount = post['Like Count'] || 0;
+    
+    // Check if user has liked this post locally (for UI state only)
+    const isLiked = isPostLiked(post.Slug);
+    const heartClass = isLiked ? 'fas fa-heart liked' : 'far fa-heart';
 
     return `
         <div class="post-card-content">
@@ -245,7 +253,10 @@ function createPostCardHTML(post) {
             <p class="post-excerpt">${post.Excerpt}</p>
             <div class="post-stats">
                 <span class="views"><i class="far fa-eye"></i> ${viewCount} views</span>
-                <span class="likes"><i class="far fa-heart"></i> ${likeCount} likes</span>
+                <button class="like-button ${isLiked ? 'liked' : ''}" data-slug="${post.Slug}">
+                    <i class="${heartClass}"></i> 
+                    <span class="like-count">${likeCount}</span>
+                </button>
             </div>
         </div>
     `;
@@ -298,8 +309,188 @@ function initializeSearch() {
     }
 }
 
+/* ------------------------------------------------------------------ */
+/* Like functionality                                                  */
+/* ------------------------------------------------------------------ */
+
+function isPostLiked(slug) {
+    const likedPosts = JSON.parse(localStorage.getItem('likedPosts') || '[]');
+    return likedPosts.includes(slug);
+}
+
+function toggleLike(slug, forceState = null) {
+    const likedPosts = JSON.parse(localStorage.getItem('likedPosts') || '[]');
+    const index = likedPosts.indexOf(slug);
+    
+    if (forceState !== null) {
+        // Force a specific state
+        if (forceState && index === -1) {
+            likedPosts.push(slug);
+        } else if (!forceState && index > -1) {
+            likedPosts.splice(index, 1);
+        }
+        localStorage.setItem('likedPosts', JSON.stringify(likedPosts));
+        return forceState;
+    } else {
+        // Toggle normally
+        if (index > -1) {
+            // Unlike
+            likedPosts.splice(index, 1);
+        } else {
+            // Like
+            likedPosts.push(slug);
+        }
+        
+        localStorage.setItem('likedPosts', JSON.stringify(likedPosts));
+        return index === -1; // Returns true if just liked, false if just unliked
+    }
+}
+
+async function handleLikeToggle(slug, isCurrentlyLiked) {
+    try {
+        const action = isCurrentlyLiked ? 'unlike' : 'like';
+        
+        const response = await fetch(`/.netlify/functions/posts/${slug}/like`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ action })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        return {
+            success: true,
+            newLikeCount: data.likeCount,
+            isLiked: action === 'like'
+        };
+    } catch (error) {
+        console.error('Error toggling like:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+function initializeLikeButtons() {
+    document.addEventListener('click', async (e) => {
+        // Check if clicked element is a like button or inside one
+        const likeButton = e.target.closest('.like-button');
+        if (!likeButton) return;
+        
+        // CRITICAL: Stop all event propagation to prevent navigation
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        
+        // Prevent multiple clicks while processing
+        if (likeButton.disabled) return;
+        likeButton.disabled = true;
+        
+        const slug = likeButton.dataset.slug;
+        const heartIcon = likeButton.querySelector('i');
+        const likeCountSpan = likeButton.querySelector('.like-count');
+        const isCurrentlyLiked = likeButton.classList.contains('liked');
+        
+        // Add loading state with beautiful animation
+        likeButton.classList.add('animating');
+        
+        try {
+            const result = await handleLikeToggle(slug, isCurrentlyLiked);
+            
+            if (result.success) {
+                // Update UI with new count from server
+                likeCountSpan.textContent = result.newLikeCount;
+                
+                if (result.isLiked) {
+                    // Light up the heart!
+                    heartIcon.className = 'fas fa-heart liked';
+                    likeButton.classList.add('liked');
+                    // Update local storage for UI consistency
+                    toggleLike(slug, true);
+                    
+                    // Add sparkle effect
+                    createSparkleEffect(likeButton);
+                } else {
+                    // Turn off the heart
+                    heartIcon.className = 'far fa-heart';
+                    likeButton.classList.remove('liked');
+                    // Update local storage for UI consistency
+                    toggleLike(slug, false);
+                }
+            } else {
+                // Revert UI on error
+                console.error('Failed to update like:', result.error);
+                showFeedback('Failed to update like. Please try again.', 'error');
+            }
+        } catch (error) {
+            console.error('Error in like button handler:', error);
+            showFeedback('Failed to update like. Please try again.', 'error');
+        } finally {
+            // Remove loading state and re-enable button
+            setTimeout(() => {
+                likeButton.classList.remove('animating');
+                likeButton.disabled = false;
+            }, 600);
+        }
+    });
+}
+
+function createSparkleEffect(button) {
+    // Create floating sparkles
+    for (let i = 0; i < 3; i++) {
+        setTimeout(() => {
+            const sparkle = document.createElement('span');
+            sparkle.innerHTML = '✨';
+            sparkle.style.cssText = `
+                position: absolute;
+                pointer-events: none;
+                font-size: 14px;
+                color: #ff1744;
+                z-index: 1000;
+                animation: floatUp 1s ease-out forwards;
+            `;
+            
+            const rect = button.getBoundingClientRect();
+            sparkle.style.left = (rect.left + Math.random() * rect.width) + 'px';
+            sparkle.style.top = (rect.top + Math.random() * rect.height) + 'px';
+            
+            document.body.appendChild(sparkle);
+            
+            setTimeout(() => sparkle.remove(), 1000);
+        }, i * 100);
+    }
+}
+
+function showFeedback(message, type = 'info') {
+    // Simple feedback without alert (less intrusive)
+    console.log(`${type.toUpperCase()}: ${message}`);
+}
+
+// Add CSS for floating sparkles
+if (!document.querySelector('#sparkle-styles')) {
+    const style = document.createElement('style');
+    style.id = 'sparkle-styles';
+    style.textContent = `
+        @keyframes floatUp {
+            0% {
+                transform: translateY(0) scale(0.5);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-30px) scale(1);
+                opacity: 0;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+}
+
 // Load posts when the page is ready
 document.addEventListener('DOMContentLoaded', () => {
     loadPosts();
     initializeSearch();
+    initializeLikeButtons();
 }); 
