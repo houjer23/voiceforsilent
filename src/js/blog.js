@@ -376,8 +376,10 @@ function initializeLikeButtons() {
         const likeButton = e.target.closest('.like-button');
         if (!likeButton) return;
         
+        // CRITICAL: Stop all event propagation to prevent navigation
         e.preventDefault();
-        e.stopPropagation(); // Prevent card click navigation
+        e.stopPropagation();
+        e.stopImmediatePropagation();
         
         // Prevent multiple clicks while processing
         if (likeButton.disabled) return;
@@ -388,7 +390,7 @@ function initializeLikeButtons() {
         const likeCountSpan = likeButton.querySelector('.like-count');
         const isCurrentlyLiked = likeButton.classList.contains('liked');
         
-        // Add loading state
+        // Add loading state with beautiful animation
         likeButton.classList.add('animating');
         
         try {
@@ -399,11 +401,16 @@ function initializeLikeButtons() {
                 likeCountSpan.textContent = result.newLikeCount;
                 
                 if (result.isLiked) {
+                    // Light up the heart!
                     heartIcon.className = 'fas fa-heart liked';
                     likeButton.classList.add('liked');
                     // Update local storage for UI consistency
                     toggleLike(slug, true);
+                    
+                    // Add sparkle effect
+                    createSparkleEffect(likeButton);
                 } else {
+                    // Turn off the heart
                     heartIcon.className = 'far fa-heart';
                     likeButton.classList.remove('liked');
                     // Update local storage for UI consistency
@@ -412,19 +419,69 @@ function initializeLikeButtons() {
             } else {
                 // Revert UI on error
                 console.error('Failed to update like:', result.error);
-                alert('Failed to update like. Please try again.');
+                showFeedback('Failed to update like. Please try again.', 'error');
             }
         } catch (error) {
             console.error('Error in like button handler:', error);
-            alert('Failed to update like. Please try again.');
+            showFeedback('Failed to update like. Please try again.', 'error');
         } finally {
             // Remove loading state and re-enable button
             setTimeout(() => {
                 likeButton.classList.remove('animating');
                 likeButton.disabled = false;
-            }, 200);
+            }, 600);
         }
     });
+}
+
+function createSparkleEffect(button) {
+    // Create floating sparkles
+    for (let i = 0; i < 3; i++) {
+        setTimeout(() => {
+            const sparkle = document.createElement('span');
+            sparkle.innerHTML = '✨';
+            sparkle.style.cssText = `
+                position: absolute;
+                pointer-events: none;
+                font-size: 14px;
+                color: #ff1744;
+                z-index: 1000;
+                animation: floatUp 1s ease-out forwards;
+            `;
+            
+            const rect = button.getBoundingClientRect();
+            sparkle.style.left = (rect.left + Math.random() * rect.width) + 'px';
+            sparkle.style.top = (rect.top + Math.random() * rect.height) + 'px';
+            
+            document.body.appendChild(sparkle);
+            
+            setTimeout(() => sparkle.remove(), 1000);
+        }, i * 100);
+    }
+}
+
+function showFeedback(message, type = 'info') {
+    // Simple feedback without alert (less intrusive)
+    console.log(`${type.toUpperCase()}: ${message}`);
+}
+
+// Add CSS for floating sparkles
+if (!document.querySelector('#sparkle-styles')) {
+    const style = document.createElement('style');
+    style.id = 'sparkle-styles';
+    style.textContent = `
+        @keyframes floatUp {
+            0% {
+                transform: translateY(0) scale(0.5);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-30px) scale(1);
+                opacity: 0;
+            }
+        }
+    `;
+    document.head.appendChild(style);
 }
 
 // Load posts when the page is ready

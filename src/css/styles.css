@@ -194,22 +194,40 @@ nav {
 .like-button {
     background: none;
     border: none;
-    padding: 0;
+    padding: var(--spacing-xs) var(--spacing-sm);
     font: inherit;
     color: var(--text-secondary);
     cursor: pointer;
     display: flex;
     align-items: center;
     gap: var(--spacing-xs);
-    transition: all 0.2s ease;
-    border-radius: 6px;
-    padding: var(--spacing-xs) var(--spacing-sm);
+    transition: all 0.3s ease;
+    border-radius: 20px;
+    position: relative;
+    overflow: hidden;
+}
+
+.like-button:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, rgba(255, 105, 180, 0.1), rgba(220, 38, 127, 0.1));
+    border-radius: 20px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.like-button:hover:not(:disabled):before {
+    opacity: 1;
 }
 
 .like-button:hover:not(:disabled) {
-    background: rgba(220, 38, 127, 0.1);
-    color: #dc267f;
-    transform: scale(1.05);
+    color: #ff1744;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(220, 38, 127, 0.2);
 }
 
 .like-button:disabled {
@@ -218,35 +236,108 @@ nav {
 }
 
 .like-button i {
-    transition: all 0.2s ease;
-    font-size: 1rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 1.1rem;
+    position: relative;
+    z-index: 1;
+    filter: drop-shadow(0 0 0 transparent);
+}
+
+/* Liked state - beautiful glowing effect */
+.like-button.liked {
+    color: #ff1744;
+    background: linear-gradient(45deg, rgba(255, 105, 180, 0.15), rgba(220, 38, 127, 0.15));
+    box-shadow: 0 0 20px rgba(255, 23, 68, 0.3), 0 0 40px rgba(255, 23, 68, 0.1);
 }
 
 .like-button.liked i {
-    color: #dc267f;
-    animation: heartPulse 0.3s ease;
+    color: #ff1744;
+    filter: drop-shadow(0 0 8px rgba(255, 23, 68, 0.6));
+    text-shadow: 0 0 10px rgba(255, 23, 68, 0.4);
 }
 
+.like-button.liked:before {
+    opacity: 1;
+    background: linear-gradient(45deg, rgba(255, 105, 180, 0.2), rgba(220, 38, 127, 0.2));
+}
+
+/* Animation states */
 .like-button.animating {
-    transform: scale(1.1);
+    transform: scale(1.1) translateY(-2px);
 }
 
 .like-button.animating i {
-    animation: heartBounce 0.3s ease;
+    animation: heartGlow 0.6s ease;
+}
+
+.like-button.animating.liked i {
+    animation: heartLightUp 0.6s ease;
 }
 
 /* Heart animations */
-@keyframes heartPulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.2); }
-    100% { transform: scale(1); }
+@keyframes heartGlow {
+    0% { 
+        transform: scale(1);
+        filter: drop-shadow(0 0 0 transparent);
+    }
+    50% { 
+        transform: scale(1.3);
+        filter: drop-shadow(0 0 15px rgba(255, 23, 68, 0.8));
+    }
+    100% { 
+        transform: scale(1);
+        filter: drop-shadow(0 0 8px rgba(255, 23, 68, 0.6));
+    }
 }
 
-@keyframes heartBounce {
-    0%, 100% { transform: scale(1); }
-    25% { transform: scale(1.2); }
-    50% { transform: scale(1.1); }
-    75% { transform: scale(1.15); }
+@keyframes heartLightUp {
+    0% { 
+        transform: scale(1);
+        filter: drop-shadow(0 0 8px rgba(255, 23, 68, 0.6));
+        text-shadow: 0 0 10px rgba(255, 23, 68, 0.4);
+    }
+    25% { 
+        transform: scale(1.4);
+        filter: drop-shadow(0 0 20px rgba(255, 23, 68, 1));
+        text-shadow: 0 0 20px rgba(255, 23, 68, 0.8);
+    }
+    50% { 
+        transform: scale(1.2);
+        filter: drop-shadow(0 0 25px rgba(255, 23, 68, 0.9));
+        text-shadow: 0 0 25px rgba(255, 23, 68, 0.7);
+    }
+    100% { 
+        transform: scale(1);
+        filter: drop-shadow(0 0 8px rgba(255, 23, 68, 0.6));
+        text-shadow: 0 0 10px rgba(255, 23, 68, 0.4);
+    }
+}
+
+/* Sparkle effect for when liked */
+.like-button.liked::after {
+    content: '✨';
+    position: absolute;
+    top: -10px;
+    right: -5px;
+    font-size: 0.7rem;
+    opacity: 0;
+    animation: sparkle 0.8s ease-out;
+    pointer-events: none;
+}
+
+@keyframes sparkle {
+    0% {
+        opacity: 0;
+        transform: scale(0) rotate(0deg);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.2) rotate(180deg);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0.8) rotate(360deg);
+    }
 }
 
 .post-author,
