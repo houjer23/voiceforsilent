@@ -1,6 +1,39 @@
-.DS_Store
+# Dependencies
 node_modules/
+package-lock.json
+
+# Environment variables
+.env
+.env.local
+
+# Build output
+dist/
+
+# Netlify
+.netlify/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
 *.log
-.env 
-# Local Netlify folder
-.netlify
+npm-debug.log*
+
+# Temporary files
+*.tmp
+*.temp
+
+# OS generated files
+.directory
+*~
+
+# Backup files
+*.bak
+*.backup

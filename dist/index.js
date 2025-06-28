@@ -1,9 +1,17 @@
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        // Fetch and parse the Posts.csv file
-        console.log('Fetching Posts.csv...');
-        const csv = await (await fetch('Posts.csv')).text();
-        const posts = parseCSV(csv);
+        console.log('Fetching posts from database...');
+        
+        // Fetch posts from the API endpoint
+        const response = await fetch('/.netlify/functions/posts?limit=3&featured=true');
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        const posts = data.posts || [];
+        
         console.log('Found', posts.length, 'posts');
 
         // Sort posts by published date in descending order (newest first)
@@ -18,6 +26,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         // Get the blog posts container
         const blogPostsSection = document.querySelector('.blog-section .blog-posts');
+        
+        if (!blogPostsSection) {
+            console.error('Blog posts container not found');
+            return;
+        }
         
         // Clear existing content
         blogPostsSection.innerHTML = '';
@@ -49,11 +62,43 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     } catch (err) {
         console.error('Error loading posts:', err);
+        
+        // Fallback to CSV if API fails (for development/transition period)
+        try {
+            console.log('Falling back to CSV...');
+            const csv = await (await fetch('Posts.csv')).text();
+            const posts = parseCSV(csv);
+            
+            // Same logic as above for rendering posts
+            const sortedPosts = posts.sort((a, b) => {
+                const dateA = a['Published Date'] ? new Date(a['Published Date']) : new Date(0);
+                const dateB = b['Published Date'] ? new Date(b['Published Date']) : new Date(0);
+                return dateB - dateA;
+            });
+            
+            const topPosts = sortedPosts.slice(0, 3);
+            const blogPostsSection = document.querySelector('.blog-section .blog-posts');
+            
+            if (blogPostsSection) {
+                blogPostsSection.innerHTML = '';
+                topPosts.forEach(post => {
+                    const postElement = createPostElement(post);
+                    blogPostsSection.appendChild(postElement);
+                });
+            }
+            
+            console.log('Fallback to CSV successful');
+        } catch (csvErr) {
+            console.error('CSV fallback also failed:', csvErr);
+            const blogPostsSection = document.querySelector('.blog-section .blog-posts');
+            if (blogPostsSection) {
+                blogPostsSection.innerHTML = '<div class="error-message">Unable to load posts. Please try again later.</div>';
+            }
+        }
     }
 });
 
 // Create a post element
-/* ---------- NEW createPostElement ---------- */
 function createPostElement(post) {
     const article = document.createElement('article');
     article.className = 'post-card';
@@ -113,7 +158,7 @@ function createPostElement(post) {
 }  
 
 /* ----------------------------------------------------------- */
-/*  CSV Parser - Using the same code from post.js              */
+/*  CSV Parser - Keep for fallback                             */
 /* ----------------------------------------------------------- */
 
 function csvToRows(text) {

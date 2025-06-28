@@ -1,22 +1,120 @@
 async function loadPosts() {
     try {
-        const response = await fetch('Posts.csv');
-        const csvText = await response.text();
-        const posts   = parseCSV(csvText);
+        console.log('Fetching posts from database...');
+        
+        // Fetch posts from the API endpoint
+        const response = await fetch('/.netlify/functions/posts?limit=50');
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        let posts = data.posts || [];
+        
+        console.log('Found', posts.length, 'posts from database');
         
         // Sort posts by date, most recent first
         posts.sort((a, b) => new Date(b['Published Date']) - new Date(a['Published Date']));
         
         displayPosts(posts);
     } catch (error) {
-        console.error('Error loading posts:', error);
+        console.error('Error loading posts from database:', error);
+        
+        // Fallback to CSV if API fails
+        try {
+            console.log('Falling back to CSV...');
+            const response = await fetch('Posts.csv');
+            const csvText = await response.text();
+            const posts   = parseCSV(csvText);
+            
+            // Sort posts by date, most recent first
+            posts.sort((a, b) => new Date(b['Published Date']) - new Date(a['Published Date']));
+            
+            displayPosts(posts);
+            console.log('CSV fallback successful');
+        } catch (csvError) {
+            console.error('CSV fallback also failed:', csvError);
+            document.getElementById('posts-container').innerHTML =
+                '<div class="error-message">Error loading posts. Please try again later.</div>';
+        }
+    }
+}
+
+// Search functionality
+async function searchPosts(searchTerm) {
+    try {
+        console.log('Searching posts for:', searchTerm);
+        
+        const response = await fetch(`/.netlify/functions/posts?search=${encodeURIComponent(searchTerm)}&limit=50`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        let posts = data.posts || [];
+        
+        console.log('Found', posts.length, 'search results');
+        
+        displayPosts(posts);
+        
+        // Update UI to show search results
+        const container = document.getElementById('posts-container');
+        if (posts.length === 0) {
+            container.innerHTML = '<div class="no-results">No posts found for your search.</div>';
+        } else {
+            const resultsHeader = document.createElement('div');
+            resultsHeader.className = 'search-results-header';
+            resultsHeader.innerHTML = `<h2>Search Results for "${searchTerm}" (${posts.length} found)</h2>`;
+            container.insertBefore(resultsHeader, container.firstChild);
+        }
+        
+    } catch (error) {
+        console.error('Error searching posts:', error);
         document.getElementById('posts-container').innerHTML =
-            '<div class="error-message">Error loading posts. Please try again later.</div>';
+            '<div class="error-message">Error searching posts. Please try again later.</div>';
+    }
+}
+
+// Filter posts by category
+async function filterByCategory(category) {
+    try {
+        console.log('Filtering posts by category:', category);
+        
+        const response = await fetch(`/.netlify/functions/posts?category=${encodeURIComponent(category)}&limit=50`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        let posts = data.posts || [];
+        
+        console.log('Found', posts.length, 'posts in category:', category);
+        
+        displayPosts(posts);
+        
+        // Update UI to show category filter
+        const container = document.getElementById('posts-container');
+        if (posts.length === 0) {
+            container.innerHTML = `<div class="no-results">No posts found in category "${category}".</div>`;
+        } else {
+            const categoryHeader = document.createElement('div');
+            categoryHeader.className = 'category-header';
+            categoryHeader.innerHTML = `<h2>Posts in "${category}" (${posts.length} found)</h2>`;
+            container.insertBefore(categoryHeader, container.firstChild);
+        }
+        
+    } catch (error) {
+        console.error('Error filtering posts by category:', error);
+        document.getElementById('posts-container').innerHTML =
+            '<div class="error-message">Error filtering posts. Please try again later.</div>';
     }
 }
 
 /* ------------------------------------------------------------------ */
-/* 1.  Split the entire CSV into rows, honouring quoted sections       */
+/* CSV Parser - Keep for fallback                                     */
 /* ------------------------------------------------------------------ */
 function csvToRows(text) {
     const rows = [];
@@ -60,9 +158,6 @@ function csvToRows(text) {
     return rows;
 }
 
-/* ------------------------------------------------------------------ */
-/* 2.  Parse rows into post objects                                    */
-/* ------------------------------------------------------------------ */
 function parseCSV(csvText) {
     const rows = csvToRows(csvText);
     if (!rows.length) return [];
@@ -105,7 +200,7 @@ function parseCSV(csvText) {
 }
 
 /* ------------------------------------------------------------------ */
-/* 3.  Your original displayPosts() stays untouched                    */
+/* Display posts (unchanged from original)                            */
 /* ------------------------------------------------------------------ */
 function displayPosts(posts) {
     const container = document.getElementById('posts-container');
@@ -165,5 +260,36 @@ function formatDate(dateString) {
     });
 }
 
+// Initialize search functionality
+function initializeSearch() {
+    const searchInput = document.getElementById('search-input');
+    const searchButton = document.getElementById('search-button');
+    
+    if (searchInput && searchButton) {
+        searchButton.addEventListener('click', () => {
+            const searchTerm = searchInput.value.trim();
+            if (searchTerm) {
+                searchPosts(searchTerm);
+            } else {
+                loadPosts(); // Load all posts if search is empty
+            }
+        });
+        
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const searchTerm = searchInput.value.trim();
+                if (searchTerm) {
+                    searchPosts(searchTerm);
+                } else {
+                    loadPosts();
+                }
+            }
+        });
+    }
+}
+
 // Load posts when the page is ready
-document.addEventListener('DOMContentLoaded', loadPosts);
+document.addEventListener('DOMContentLoaded', () => {
+    loadPosts();
+    initializeSearch();
+}); 
