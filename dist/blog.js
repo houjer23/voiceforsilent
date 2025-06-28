@@ -1,4 +1,7 @@
 async function loadPosts() {
+    // Add loading class to body to hide footer initially
+    document.body.classList.add('content-loading');
+
     try {
         console.log('Fetching posts from database...');
         
@@ -18,6 +21,10 @@ async function loadPosts() {
         posts.sort((a, b) => new Date(b['Published Date']) - new Date(a['Published Date']));
         
         displayPosts(posts);
+        
+        // Show footer after posts are loaded and rendered
+        document.body.classList.remove('content-loading');
+        document.body.classList.add('content-loaded');
     } catch (error) {
         console.error('Error loading posts from database:', error);
         
@@ -38,11 +45,19 @@ async function loadPosts() {
             document.getElementById('posts-container').innerHTML =
                 '<div class="error-message">Error loading posts. Please try again later.</div>';
         }
+        
+        // Show footer even if posts failed to load
+        document.body.classList.remove('content-loading');
+        document.body.classList.add('content-loaded');
     }
 }
 
 // Search functionality
 async function searchPosts(searchTerm) {
+    // Hide footer during search
+    document.body.classList.add('content-loading');
+    document.body.classList.remove('content-loaded');
+
     try {
         console.log('Searching posts for:', searchTerm);
         
@@ -70,15 +85,27 @@ async function searchPosts(searchTerm) {
             container.insertBefore(resultsHeader, container.firstChild);
         }
         
+        // Show footer after search results are displayed
+        document.body.classList.remove('content-loading');
+        document.body.classList.add('content-loaded');
+        
     } catch (error) {
         console.error('Error searching posts:', error);
         document.getElementById('posts-container').innerHTML =
             '<div class="error-message">Error searching posts. Please try again later.</div>';
+        
+        // Show footer even if search failed
+        document.body.classList.remove('content-loading');
+        document.body.classList.add('content-loaded');
     }
 }
 
 // Filter posts by category
 async function filterByCategory(category) {
+    // Hide footer during filtering
+    document.body.classList.add('content-loading');
+    document.body.classList.remove('content-loaded');
+
     try {
         console.log('Filtering posts by category:', category);
         
@@ -106,10 +133,18 @@ async function filterByCategory(category) {
             container.insertBefore(categoryHeader, container.firstChild);
         }
         
+        // Show footer after filtering is complete
+        document.body.classList.remove('content-loading');
+        document.body.classList.add('content-loaded');
+        
     } catch (error) {
         console.error('Error filtering posts by category:', error);
         document.getElementById('posts-container').innerHTML =
             '<div class="error-message">Error filtering posts. Please try again later.</div>';
+        
+        // Show footer even if filtering failed
+        document.body.classList.remove('content-loading');
+        document.body.classList.add('content-loaded');
     }
 }
 

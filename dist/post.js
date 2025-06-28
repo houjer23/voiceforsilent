@@ -1,6 +1,9 @@
 /* post.js – render a single article picked via ?slug=…              */
 
 document.addEventListener('DOMContentLoaded', async () => {
+    // Add loading class to body to hide footer initially
+    document.body.classList.add('content-loading');
+
     const params = new URLSearchParams(location.search);
     const slug   = params.get('slug');
     const target = document.getElementById('post');
@@ -10,11 +13,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!slug) {
         console.log('No slug provided');
         target.innerHTML = '<div class="error-message">Post not found.</div>';
+        // Show footer even if no slug
+        document.body.classList.remove('content-loading');
+        document.body.classList.add('content-loaded');
         return;
     }
 
     await loadPost(slug, target);
     initializeLikeButtons();
+    
+    // Show footer after post is loaded
+    document.body.classList.remove('content-loading');
+    document.body.classList.add('content-loaded');
 });
 
 async function loadPost(slug, target) {

@@ -283,10 +283,16 @@
                 <a href="mailto:ellajyx@gmail.com" class="footer-email">ellajyx@gmail.com</a>
                 <a href="mailto:R_yuling@outlook.com" class="footer-email">R_yuling@outlook.com</a>
             </div>
-            <p class="copyright">&copy;2023 by Voice for Silent. Created with Wix.com</p>
+            <p class="copyright">&copy;2023 by Voice for Silent. Created by Jerry Hou</p>
         </div>
     </footer>
 
     <script src="admin.js"></script>
+    <script>
+        // For admin page, show footer immediately since it's not content-dependent
+        document.addEventListener('DOMContentLoaded', () => {
+            document.body.classList.add('content-loaded');
+        });
+    </script>
 </body>
 </html> 
