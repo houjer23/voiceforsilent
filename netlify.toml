@@ -1,7 +1,7 @@
 [build]
   publish = "dist"
   functions = "netlify/functions"
-  command = "mkdir -p dist && cp -f *.html *.css *.js *.csv *.svg *.avif dist/"
+  command = "npm run build"
 
 [functions]
   node_bundler = "esbuild"
