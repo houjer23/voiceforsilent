@@ -227,16 +227,26 @@ function displayPosts(posts) {
 function createPostCardHTML(post) {
     const publishedDate = formatDate(post['Published Date']);
     const tags = createTagsHTML(post.Tags);
+    
+    // Get author, views, and likes with fallback values
+    const author = post.Author || 'Anonymous';
+    const viewCount = post['View Count'] || 0;
+    const likeCount = post['Like Count'] || 0;
 
     return `
         <div class="post-card-content">
             <div class="post-meta">
-                <span class="date">${publishedDate}</span>
-                <span class="read-time">${post['Time To Read']} min read</span>
+                <span class="author"><i class="fas fa-user"></i> ${author}</span>
+                <span class="date"><i class="far fa-calendar"></i> ${publishedDate}</span>
+                <span class="read-time"><i class="far fa-clock"></i> ${post['Time To Read']} min read</span>
             </div>
             <h2 class="post-title">${post.Title || 'Untitled'}</h2>
             ${tags}
             <p class="post-excerpt">${post.Excerpt}</p>
+            <div class="post-stats">
+                <span class="views"><i class="far fa-eye"></i> ${viewCount} views</span>
+                <span class="likes"><i class="far fa-heart"></i> ${likeCount} likes</span>
+            </div>
         </div>
     `;
 }

@@ -106,6 +106,12 @@ function renderPost(post) {
     
     // Post metadata
     html.push('<div class="post-meta">');
+    
+    // Author
+    const author = post.Author || 'Anonymous';
+    html.push(`<span class="post-author"><i class="fas fa-user"></i> By ${author}</span>`);
+    
+    // Date
     if (post['Published Date']) {
         const date = new Date(post['Published Date'])
             .toLocaleDateString('en-US', {
@@ -115,9 +121,18 @@ function renderPost(post) {
             });
         html.push(`<span class="post-date"><i class="far fa-calendar"></i> ${date}</span>`);
     }
+    
+    // Read time
     if (post['Time To Read']) {
         html.push(`<span class="read-time"><i class="far fa-clock"></i> ${post['Time To Read']} min read</span>`);
     }
+    
+    // Views and likes
+    const viewCount = post['View Count'] || 0;
+    const likeCount = post['Like Count'] || 0;
+    html.push(`<span class="post-views"><i class="far fa-eye"></i> ${viewCount} views</span>`);
+    html.push(`<span class="post-likes"><i class="far fa-heart"></i> ${likeCount} likes</span>`);
+    
     html.push('</div>');
 
     // Tags

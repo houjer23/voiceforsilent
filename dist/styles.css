@@ -156,6 +156,57 @@ nav {
     color: var(--text-secondary);
     font-size: 0.875rem;
     margin-bottom: var(--spacing-md);
+    flex-wrap: wrap;
+}
+
+.post-meta i {
+    margin-right: var(--spacing-xs);
+    color: var(--primary-color);
+}
+
+.post-meta .author {
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.post-stats {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    margin-top: var(--spacing-sm);
+    padding-top: var(--spacing-sm);
+    border-top: 1px solid var(--gray-100);
+}
+
+.post-stats i {
+    margin-right: var(--spacing-xs);
+    color: var(--primary-color);
+}
+
+.post-stats .views,
+.post-stats .likes {
+    display: flex;
+    align-items: center;
+}
+
+.post-author,
+.post-views,
+.post-likes {
+    display: flex;
+    align-items: center;
+    font-size: 0.875rem;
+}
+
+.post-author {
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.post-views,
+.post-likes {
+    color: var(--text-secondary);
 }
 
 .post-title {
@@ -265,6 +316,17 @@ nav {
     .post-header .post-meta {
         flex-direction: column;
         gap: var(--spacing-sm);
+        align-items: flex-start;
+    }
+
+    .post-stats {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--spacing-sm);
+    }
+
+    .post-meta .author {
+        order: -1;
     }
 
     .post-body {
@@ -273,7 +335,7 @@ nav {
 }
 
 /* Add Font Awesome icons */
-@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css');
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css');
 
 /* Blog Section with Header */
 .blog-section {
@@ -426,9 +488,6 @@ nav {
         padding: var(--spacing-md);
     }
 }
-
-/* Add Font Awesome support for icons */
-@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css'); 
 
 /* ======= Blog-card refresh ======= */
 .post-card {
